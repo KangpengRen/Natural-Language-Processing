@@ -3,11 +3,12 @@
 """
 import torch
 import torch.nn as nn
+from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
 from model import InputMethodModel
 from dataset import get_dataloader
-from config import MODELS_DIR, LEARNING_RATE, EPOCHS
+from config import MODELS_DIR, LEARNING_RATE, EPOCHS, LOGS_DIR
 
 
 def train():
@@ -30,12 +31,25 @@ def train():
     # 6. 定义优化器
     optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
+    # tensorboard writer
+    writer = SummaryWriter(log_dir=LOGS_DIR)
+
     # 开始训练
+    best_loss = float("inf")
     for epoch in range(EPOCHS):
         print("=" * 10, f"EPOCH: {epoch + 1}", "=" * 10)
         train_one_epoch()
         loss = train_one_epoch(model, dataloader, loss_fn, optimizer, device)
         print(f"loss: {loss}")
+
+        # 记录训练结果
+        writer.add_scalar("loss", loss, epoch)
+
+        # 保存模型
+        if loss < best_loss:
+            best_loss = loss
+            torch.save(model.state_dict(), MODELS_DIR / "best_model.pth")
+            print("模型参数更新成功")
 
 
 def train_one_epoch(model, dataloader, loss_fn, optimizer, device):
