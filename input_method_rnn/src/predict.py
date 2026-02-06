@@ -8,6 +8,17 @@ from config import MODELS_DIR
 from model import InputMethodModel
 
 
+def predict_batch(model, input_tensor):
+    # 预测逻辑
+    model.eval()  # 开启模型预测模式
+    with torch.no_grad():
+        output = model(input_tensor)  # (batch_size, vocab_size)
+        # 取前5最高预测值
+        top5_indexes = torch.topk(input=output, k=5, dim=1).indices  # (batch_size, k)
+        top5_indexes_list = top5_indexes.tolist()
+    return top5_indexes_list    # [batch_size, 5]
+
+
 def predict(model, device, token2index, index2token, text):
     # 输入处理
     tokens = jieba.lcut(text)
@@ -17,14 +28,9 @@ def predict(model, device, token2index, index2token, text):
     model.to(device)
     input_tensor = input_tensor.to(device)
 
-    # 预测逻辑
-    model.eval()  # 开启模型预测模式
-    with torch.no_grad():
-        output = model(input_tensor)  # (batch_size, vocab_size)
-        # 取前5最高预测值
-        top5_indexes = torch.topk(input=output, k=5, dim=1).indices  # (batch_size, k)
-        top5_indexes_list = top5_indexes.tolist()
-        top5_tokens = [index2token.get(index) for index in top5_indexes_list[0]]
+    top5_indexes_list = predict_batch(model, input_tensor)
+    top5_tokens = [index2token.get(index) for index in top5_indexes_list[0]]
+
     return top5_tokens
 
 
