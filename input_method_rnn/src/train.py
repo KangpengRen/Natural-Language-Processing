@@ -1,0 +1,74 @@
+"""
+训练脚本
+"""
+import torch
+import torch.nn as nn
+from tqdm import tqdm
+
+from model import InputMethodModel
+from dataset import get_dataloader
+from config import MODELS_DIR, LEARNING_RATE, EPOCHS
+
+
+def train():
+    # 1. 确定训练设备
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+    # 2. 获取数据集
+    dataloader = get_dataloader(train=True)
+
+    # 3. 加载词表
+    with open(MODELS_DIR / "vocab.txt", "r", encoding="utf-8") as f:
+        vocab_list = [line.strip() for line in f.readlines()]
+
+    # 4. 构建模型
+    model = InputMethodModel(len(vocab_list))
+
+    # 5. 定义损失函数
+    loss_fn = nn.CrossEntropyLoss()
+
+    # 6. 定义优化器
+    optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
+
+    # 开始训练
+    for epoch in range(EPOCHS):
+        print("=" * 10, f"EPOCH: {epoch + 1}", "=" * 10)
+        train_one_epoch()
+        loss = train_one_epoch(model, dataloader, loss_fn, optimizer, device)
+        print(f"loss: {loss}")
+
+
+def train_one_epoch(model, dataloader, loss_fn, optimizer, device):
+    """
+    训练一个轮次
+    :param model: 模型
+    :param dataloader: 数据集
+    :param loss_fn: 损失函数
+    :param optimizer: 优化器
+    :param device: 训练设备
+    :return: 当前epoch的平均loss
+    """
+    model.train()  # 将模型设置为训练模式
+    model.to(device)  # 将模型放入训练设备
+
+    total_loss = 0
+    for inputs, targets in tqdm(dataloader, desc="训练"):
+        inputs = inputs.to(device)  # 输入放入训练设备中     shape: (batch_size, seq_len)
+        targets = inputs.to(device)  # 输出放入训练设备中    shape: (batch_size)
+
+        # 前向传播
+        outputs = model(inputs) # 前向传播结果 shape: (batch_size, vocab_size)
+
+        # 计算损失值
+        loss = loss_fn(inputs=outputs, targets=targets)
+
+        # 反向传播
+        loss.backward()
+        optimizer.step()
+        optimizer.zero_grad()
+
+        total_loss += loss.item()
+    return total_loss / len(dataloader)
+
+if __name__ == '__main__':
+    train()
