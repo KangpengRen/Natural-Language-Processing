@@ -58,6 +58,7 @@ def run_predict():
             print("输入内容不能为空！")
 
         input_history += user_input
+        print(f"预测输入：{input_history}")
         print(f"预测结果：{predict(model, device, token2index, index2token, input_history)}")
 
 

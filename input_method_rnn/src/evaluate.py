@@ -21,7 +21,8 @@ def run_evaluate():
         vocab_list = [line.strip() for line in f.readlines()]
 
     # 4. 创建模型
-    model = InputMethodModel(vocab_list)
+    model = InputMethodModel(vocab_size=len(vocab_list)).to(device)
+    model.load_state_dict(torch.load(MODELS_DIR / "best_model.pth"))
 
     top1_acc, top5_acc = evaluate(model, test_dataloader, device)
     print(f"评估结果：前5命中：{top5_acc:.2f}，前1命中：{top1_acc:.2f}")

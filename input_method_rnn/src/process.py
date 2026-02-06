@@ -11,8 +11,10 @@ from config import ROW_DATA_DIR, PROCESSED_DATA_DIR, MODELS_DIR, SEQ_LEN
 
 def process():
     # 1. 读取文件
-    df = (pd.read_json(ROW_DATA_DIR / "synthesized_.jsonl", lines=True, orient="records")
-          .sample(frac=0.1))  # 抽样10000条，加快测试速度
+    df = (
+        pd.read_json(ROW_DATA_DIR / "synthesized_.jsonl", lines=True, orient="records")
+        # .sample(frac=0.1)  # 抽样10000条，加快测试速度
+    )
 
     # 2. 提取句子
     sentences = []
@@ -48,7 +50,7 @@ def process():
 
 def build_dataset(token2index: dict[str, int], sentences, train=False) -> list:
     indexes_sentences = [[token2index.get(token, 0) for token in jieba.lcut(sentence)]
-                               for sentence in sentences]
+                         for sentence in sentences]
     train_dataset = []
     for indexes_sentence in tqdm(indexes_sentences, desc=("构建训练集" if train else "构建测试集")):
         for i in range(len(indexes_sentence) - SEQ_LEN):
