@@ -38,7 +38,6 @@ def train():
     best_loss = float("inf")
     for epoch in range(EPOCHS):
         print("=" * 10, f"EPOCH: {epoch + 1}", "=" * 10)
-        train_one_epoch()
         loss = train_one_epoch(model, dataloader, loss_fn, optimizer, device)
         print(f"loss: {loss}")
 
@@ -50,6 +49,8 @@ def train():
             best_loss = loss
             torch.save(model.state_dict(), MODELS_DIR / "best_model.pth")
             print("模型参数更新成功")
+
+        writer.close()
 
 
 def train_one_epoch(model, dataloader, loss_fn, optimizer, device):
@@ -68,13 +69,13 @@ def train_one_epoch(model, dataloader, loss_fn, optimizer, device):
     total_loss = 0
     for inputs, targets in tqdm(dataloader, desc="训练"):
         inputs = inputs.to(device)  # 输入放入训练设备中     shape: (batch_size, seq_len)
-        targets = inputs.to(device)  # 输出放入训练设备中    shape: (batch_size)
+        targets = targets.to(device)  # 输出放入训练设备中    shape: (batch_size)
 
         # 前向传播
         outputs = model(inputs) # 前向传播结果 shape: (batch_size, vocab_size)
 
         # 计算损失值
-        loss = loss_fn(inputs=outputs, targets=targets)
+        loss = loss_fn(outputs, targets)
 
         # 反向传播
         loss.backward()

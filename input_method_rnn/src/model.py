@@ -24,7 +24,7 @@ class InputMethodModel(nn.Module):
         # embed.shape = (batch_size, seq_len, embedding_dim)
         output, _ = self.rnn(embed)  # 要求输入形状：(batch_size, seq_len, input_size)
         # output.shape = (batch_size, seq_len, hidden_size * num_layers)
-        last_hidden_state = output[:-1:]  # 获取句子最后的处理结果
+        last_hidden_state = output[:, -1, :]  # 获取句子最后的处理结果
         # last_hidden_state = (batch_size, hidden_size)
         output = self.linear(last_hidden_state)
         # output.shape = (batch_size, vocab_size)
