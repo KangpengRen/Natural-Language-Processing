@@ -28,13 +28,14 @@ def predict(text):
     tokens = jieba.lcut(text)
     indexes = [token2index.get(token, 0) for token in tokens]
     input_tensor = torch.tensor([indexes], dtype=torch.long)  # 转化为二维张量
+    input_tensor = input_tensor.to(device)
 
     # 5. 预测逻辑
     model.eval()  # 开启模型预测模式
     with torch.no_grad():
         output = model(input_tensor)  # (batch_size, vocab_size)
         # 取前5最高预测值
-        top5_indexes = torch.topk(input=output, k=5, dim=1)  # (batch_size, k)
+        top5_indexes = torch.topk(input=output, k=5, dim=1).indices  # (batch_size, k)
         top5_indexes_list = top5_indexes.tolist()
         top5_tokens = [index2token.get(index) for index in top5_indexes_list[0]]
     return top5_tokens
