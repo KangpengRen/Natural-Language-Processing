@@ -3,10 +3,14 @@
 """
 import jieba
 import pandas as pd
+from sympy.abc import J
+
+import tokenizer
 from sklearn.model_selection import train_test_split
 from tqdm import tqdm
 
 from config import ROW_DATA_DIR, PROCESSED_DATA_DIR, MODELS_DIR, SEQ_LEN
+from input_method_rnn.src.tokenizer import JiebaTokenizer
 
 
 def process():
@@ -28,35 +32,26 @@ def process():
     train_sentences, test_sentences = train_test_split(sentences, train_size=0.8, shuffle=True)
 
     # 4. 构建词表
-    vocab_set = set()
-    for sentence in tqdm(sentences, desc="构建词表"):
-        vocab_set.update(jieba.lcut(sentence))
-    vocab_list = ['<unk>'] + list(vocab_set)
-    print(f"构建词表大小：{len(vocab_list)}")
+    JiebaTokenizer.build_vocab(train_sentences, MODELS_DIR / "vocab.txt")
+    tokenizer = JiebaTokenizer.from_vocab(MODELS_DIR / "vocab.txt")
 
-    # 5. 保存词表
-    with open(MODELS_DIR / "vocab.txt", "w", encoding="utf-8") as f:
-        f.write("\n".join(vocab_list))
-
-    # 6. 保存训练集和测试集
-    token2index = {token: index for index, token in enumerate(vocab_list)}  # 建立 token-index 字典
-    train_dataset = build_dataset(token2index, train_sentences, train=True)
-    test_dataset = build_dataset(token2index, test_sentences, train=False)
+    # 5. 构建并保存训练集和测试集
+    train_dataset = build_dataset(tokenizer, train_sentences, train=True)
+    test_dataset = build_dataset(tokenizer, test_sentences, train=False)
     pd.DataFrame(train_dataset).to_json(PROCESSED_DATA_DIR / "train.jsonl", orient="records", lines=True)
     pd.DataFrame(test_dataset).to_json(PROCESSED_DATA_DIR / "test.jsonl", orient="records", lines=True)
 
     print("数据处理完成！")
 
 
-def build_dataset(token2index: dict[str, int], sentences, train=False) -> list:
-    indexes_sentences = [[token2index.get(token, 0) for token in jieba.lcut(sentence)]
-                         for sentence in sentences]
-    train_dataset = []
+def build_dataset(tokenizer, sentences, train=False) -> list:
+    indexes_sentences = [tokenizer.encode(sentence) for sentence in sentences]
+    dataset = []
     for indexes_sentence in tqdm(indexes_sentences, desc=("构建训练集" if train else "构建测试集")):
         for i in range(len(indexes_sentence) - SEQ_LEN):
-            train_dataset.append({"input": indexes_sentence[i:i + SEQ_LEN],
+            dataset.append({"input": indexes_sentence[i:i + SEQ_LEN],
                                   "target": indexes_sentence[i + SEQ_LEN]})
-    return train_dataset
+    return dataset
 
 
 if __name__ == '__main__':

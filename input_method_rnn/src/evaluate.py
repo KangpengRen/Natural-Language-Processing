@@ -4,6 +4,7 @@
 import torch
 
 from config import MODELS_DIR
+from input_method_rnn.src.tokenizer import JiebaTokenizer
 from model import InputMethodModel
 from dataset import get_dataloader
 from predict import predict_batch
@@ -17,11 +18,10 @@ def run_evaluate():
     test_dataloader = get_dataloader(train=False)
 
     # 3. 加载词表
-    with open(MODELS_DIR / "vocab.txt", "r", encoding="utf-8") as f:
-        vocab_list = [line.strip() for line in f.readlines()]
+    tokenize = JiebaTokenizer.from_vocab(MODELS_DIR / "vocab.txt")
 
     # 4. 创建模型
-    model = InputMethodModel(vocab_size=len(vocab_list)).to(device)
+    model = InputMethodModel(vocab_size=tokenize.vocab_size).to(device)
     model.load_state_dict(torch.load(MODELS_DIR / "best_model.pth"))
 
     top1_acc, top5_acc = evaluate(model, test_dataloader, device)

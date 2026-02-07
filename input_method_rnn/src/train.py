@@ -6,6 +6,7 @@ import torch.nn as nn
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 
+from input_method_rnn.src.tokenizer import JiebaTokenizer
 from model import InputMethodModel
 from dataset import get_dataloader
 from config import MODELS_DIR, LEARNING_RATE, EPOCHS, LOGS_DIR
@@ -19,11 +20,10 @@ def train():
     dataloader = get_dataloader(train=True)
 
     # 3. 加载词表
-    with open(MODELS_DIR / "vocab.txt", "r", encoding="utf-8") as f:
-        vocab_list = [line.strip() for line in f.readlines()]
+    tokenizer = JiebaTokenizer.from_vocab(MODELS_DIR / "vocab.txt")
 
     # 4. 构建模型
-    model = InputMethodModel(len(vocab_list))
+    model = InputMethodModel(tokenizer.vocab_size)
 
     # 5. 定义损失函数
     loss_fn = nn.CrossEntropyLoss()

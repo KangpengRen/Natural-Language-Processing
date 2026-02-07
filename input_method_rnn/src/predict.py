@@ -1,10 +1,10 @@
 """
 模型预测
 """
-import jieba
 import torch
 
 from config import MODELS_DIR
+from input_method_rnn.src.tokenizer import JiebaTokenizer
 from model import InputMethodModel
 
 
@@ -19,17 +19,16 @@ def predict_batch(model, input_tensor):
     return top5_indexes_list    # [batch_size, 5]
 
 
-def predict(model, device, token2index, index2token, text):
+def predict(model, device, tokenizer, text):
     # 输入处理
-    tokens = jieba.lcut(text)
-    indexes = [token2index.get(token, 0) for token in tokens]
+    indexes = tokenizer.encode(text)
     input_tensor = torch.tensor([indexes], dtype=torch.long)  # 转化为二维张量
 
     model.to(device)
     input_tensor = input_tensor.to(device)
 
     top5_indexes_list = predict_batch(model, input_tensor)
-    top5_tokens = [index2token.get(index) for index in top5_indexes_list[0]]
+    top5_tokens = [tokenizer.index2token.get(index) for index in top5_indexes_list[0]]
 
     return top5_tokens
 
@@ -39,13 +38,10 @@ def run_predict():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # 2. 加载词表
-    with open(MODELS_DIR / "vocab.txt", "r", encoding="utf-8") as f:
-        vocab_list = [line.strip() for line in f.readlines()]
-    index2token = {index: token for index, token in enumerate(vocab_list)}  # index -> token 表
-    token2index = {token: index for index, token in enumerate(vocab_list)}  # token -> index 表
+    tokenizer = JiebaTokenizer.from_vocab(MODELS_DIR / "vocab.txt")
 
     # 3. 加载模型
-    model = InputMethodModel(vocab_size=len(vocab_list))
+    model = InputMethodModel(vocab_size=tokenizer.vocab_size)
     model.load_state_dict(torch.load(MODELS_DIR / "best_model.pth"))
 
     print("输入法模型（输入quit退出）")
@@ -59,7 +55,7 @@ def run_predict():
 
         input_history += user_input
         print(f"预测输入：{input_history}")
-        print(f"预测结果：{predict(model, device, token2index, index2token, input_history)}")
+        print(f"预测结果：{predict(model, device, tokenizer, input_history)}")
 
 
 if __name__ == '__main__':
